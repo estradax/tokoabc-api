@@ -20,6 +20,10 @@ class StoreProductRequest extends FormRequest
             'description' => ['nullable', 'string'],
             'price' => ['required', 'numeric', 'min:0'],
             'stock' => ['required', 'integer', 'min:0'],
+            'media' => ['nullable', 'array'],
+            'media.*.url' => ['required', 'string'],
+            'media.*.type' => ['nullable', 'string', 'in:image,video'],
+            'media.*.sort_order' => ['nullable', 'integer'],
         ];
     }
 }

@@ -21,6 +21,7 @@ class ProductController extends Controller
         $search = $request->query('search');
 
         $products = Product::query()
+            ->with('media')
             ->when($search, function ($query, $search) {
                 $query->where(function ($q) use ($search) {
                     $q->where('name', 'like', "%{$search}%")
@@ -40,12 +41,26 @@ class ProductController extends Controller
     public function store(StoreProductRequest $request): JsonResponse
     {
         $validated = $request->validated();
+        $media = $validated['media'] ?? null;
+        unset($validated['media']);
 
         if (empty($validated['slug'])) {
             $validated['slug'] = $this->generateUniqueSlug($validated['name']);
         }
 
         $product = Product::create($validated);
+
+        if (! empty($media)) {
+            foreach ($media as $item) {
+                $product->media()->create([
+                    'type' => $item['type'] ?? 'image',
+                    'url' => $item['url'],
+                    'sort_order' => $item['sort_order'] ?? 0,
+                ]);
+            }
+        }
+
+        $product->load('media');
 
         return response()->json([
             'message' => 'Product created successfully',
@@ -58,6 +73,8 @@ class ProductController extends Controller
      */
     public function show(Product $product): ProductResource
     {
+        $product->load('media');
+
         return new ProductResource($product);
     }
 
@@ -67,12 +84,27 @@ class ProductController extends Controller
     public function update(UpdateProductRequest $request, Product $product): JsonResponse
     {
         $validated = $request->validated();
+        $media = $validated['media'] ?? null;
+        unset($validated['media']);
 
         if (empty($validated['slug'])) {
             $validated['slug'] = $this->generateUniqueSlug($validated['name'], $product->id);
         }
 
         $product->update($validated);
+
+        if ($media !== null) {
+            $product->media()->delete();
+            foreach ($media as $item) {
+                $product->media()->create([
+                    'type' => $item['type'] ?? 'image',
+                    'url' => $item['url'],
+                    'sort_order' => $item['sort_order'] ?? 0,
+                ]);
+            }
+        }
+
+        $product->load('media');
 
         return response()->json([
             'message' => 'Product updated successfully',

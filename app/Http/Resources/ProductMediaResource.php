@@ -5,7 +5,7 @@ namespace App\Http\Resources;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
-class ProductResource extends JsonResource
+class ProductMediaResource extends JsonResource
 {
     /**
      * Transform the resource into an array.
@@ -16,13 +16,10 @@ class ProductResource extends JsonResource
     {
         return [
             'id' => $this->id,
-            'name' => $this->name,
-            'slug' => $this->slug,
-            'sku' => $this->sku,
-            'description' => $this->description,
-            'price' => $this->price,
-            'stock' => $this->stock,
-            'media' => ProductMediaResource::collection($this->whenLoaded('media')),
+            'product_id' => $this->product_id,
+            'type' => $this->type,
+            'url' => $this->url,
+            'sort_order' => $this->sort_order,
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
         ];

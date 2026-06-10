@@ -113,3 +113,93 @@ test('authenticated user can delete a product', function () {
         'id' => $product->id,
     ]);
 });
+
+test('authenticated user can create a product with media', function () {
+    $user = User::factory()->create();
+
+    $response = $this->actingAs($user)
+        ->postJson('/api/products', [
+            'name' => 'Premium Coffee Beans',
+            'sku' => 'CF-PRM-001',
+            'description' => 'Organic roasted coffee beans.',
+            'price' => 12.50,
+            'stock' => 100,
+            'media' => [
+                [
+                    'url' => 'http://localhost/storage/assets/image1.jpg',
+                    'type' => 'image',
+                    'sort_order' => 1,
+                ],
+                [
+                    'url' => 'http://localhost/storage/assets/image2.jpg',
+                    'type' => 'image',
+                    'sort_order' => 2,
+                ],
+            ],
+        ]);
+
+    $response->assertStatus(201)
+        ->assertJsonStructure([
+            'message',
+            'product' => [
+                'id',
+                'name',
+                'slug',
+                'sku',
+                'description',
+                'price',
+                'stock',
+                'media' => [
+                    '*' => [
+                        'id',
+                        'product_id',
+                        'type',
+                        'url',
+                        'sort_order',
+                    ],
+                ],
+            ],
+        ]);
+
+    expect($response->json('product.media'))->toHaveCount(2);
+
+    $this->assertDatabaseHas('product_media', [
+        'product_id' => $response->json('product.id'),
+        'url' => 'http://localhost/storage/assets/image1.jpg',
+    ]);
+});
+
+test('authenticated user can update a product with media', function () {
+    $user = User::factory()->create();
+    $product = Product::factory()->create();
+    $product->media()->create([
+        'url' => 'http://localhost/storage/assets/old.jpg',
+        'type' => 'image',
+        'sort_order' => 0,
+    ]);
+
+    $response = $this->actingAs($user)
+        ->putJson("/api/products/{$product->id}", [
+            'name' => 'Updated Product Name',
+            'price' => 15.00,
+            'stock' => 50,
+            'media' => [
+                [
+                    'url' => 'http://localhost/storage/assets/new1.jpg',
+                    'type' => 'image',
+                    'sort_order' => 1,
+                ],
+            ],
+        ]);
+
+    $response->assertSuccessful();
+
+    $this->assertDatabaseMissing('product_media', [
+        'url' => 'http://localhost/storage/assets/old.jpg',
+    ]);
+
+    $this->assertDatabaseHas('product_media', [
+        'product_id' => $product->id,
+        'url' => 'http://localhost/storage/assets/new1.jpg',
+    ]);
+});
