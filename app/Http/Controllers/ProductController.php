@@ -4,7 +4,10 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\Product\StoreProductRequest;
 use App\Http\Requests\Product\UpdateProductRequest;
+use App\Http\Resources\ProductCustomerResource;
 use App\Http\Resources\ProductResource;
+use App\Models\Customer;
+use App\Models\OrderItem;
 use App\Models\Product;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -122,6 +125,36 @@ class ProductController extends Controller
         return response()->json([
             'message' => 'Product deleted successfully',
         ]);
+    }
+
+    /**
+     * Display the customers who purchased the specified product.
+     */
+    public function customers(Product $product): AnonymousResourceCollection
+    {
+        $customers = Customer::query()
+            ->whereHas('orders.items', function ($query) use ($product) {
+                $query->where('product_id', $product->id);
+            })
+            ->get()
+            ->map(function ($customer) use ($product) {
+                $items = OrderItem::query()
+                    ->whereHas('order', function ($query) use ($customer) {
+                        $query->where('customer_id', $customer->id);
+                    })
+                    ->where('product_id', $product->id)
+                    ->get();
+
+                $customer->total_quantity = $items->sum('quantity');
+                $customer->total_spend = $items->sum(fn ($item) => $item->quantity * $item->unit_price);
+                $customer->last_purchased_at = $items->max('created_at');
+
+                return $customer;
+            })
+            ->sortByDesc('total_quantity')
+            ->values();
+
+        return ProductCustomerResource::collection($customers);
     }
 
     /**

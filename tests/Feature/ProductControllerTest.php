@@ -1,5 +1,8 @@
 <?php
 
+use App\Models\Customer;
+use App\Models\Order;
+use App\Models\OrderItem;
 use App\Models\Product;
 use App\Models\User;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
@@ -202,4 +205,85 @@ test('authenticated user can update a product with media', function () {
         'product_id' => $product->id,
         'url' => 'http://localhost/storage/assets/new1.jpg',
     ]);
+});
+
+test('authenticated user can get a single product details', function () {
+    $user = User::factory()->create();
+    $product = Product::factory()->create();
+    $product->media()->create([
+        'url' => 'http://localhost/storage/assets/test.jpg',
+        'type' => 'image',
+        'sort_order' => 0,
+    ]);
+
+    $response = $this->actingAs($user)
+        ->getJson("/api/products/{$product->id}");
+
+    $response->assertSuccessful()
+        ->assertJsonPath('id', $product->id)
+        ->assertJsonPath('name', $product->name)
+        ->assertJsonStructure([
+            'id',
+            'name',
+            'slug',
+            'sku',
+            'description',
+            'price',
+            'stock',
+            'media',
+            'created_at',
+            'updated_at',
+        ]);
+});
+
+test('authenticated user can list customers who purchased a product', function () {
+    $user = User::factory()->create();
+    $product = Product::factory()->create(['price' => 10.00]);
+
+    // Create customers
+    $customer1 = Customer::factory()->create();
+    $customer2 = Customer::factory()->create();
+
+    // Customer 1 orders: 2 items of product (qty 3 and qty 2 = total 5)
+    $order1a = Order::factory()->create(['customer_id' => $customer1->id]);
+    OrderItem::factory()->create([
+        'order_id' => $order1a->id,
+        'product_id' => $product->id,
+        'quantity' => 3,
+        'unit_price' => 10.00,
+    ]);
+
+    $order1b = Order::factory()->create(['customer_id' => $customer1->id]);
+    OrderItem::factory()->create([
+        'order_id' => $order1b->id,
+        'product_id' => $product->id,
+        'quantity' => 2,
+        'unit_price' => 10.00,
+    ]);
+
+    // Customer 2 orders: 1 item of product (qty 1)
+    $order2 = Order::factory()->create(['customer_id' => $customer2->id]);
+    OrderItem::factory()->create([
+        'order_id' => $order2->id,
+        'product_id' => $product->id,
+        'quantity' => 1,
+        'unit_price' => 10.00,
+    ]);
+
+    $response = $this->actingAs($user)
+        ->getJson("/api/products/{$product->id}/customers");
+
+    $response->assertSuccessful();
+
+    $data = $response->json();
+    expect($data)->toHaveCount(2);
+
+    // Order should be by total_quantity descending, so Customer 1 is first
+    expect($data[0]['id'])->toBe($customer1->id);
+    expect($data[0]['total_quantity'])->toBe(5);
+    expect((float) $data[0]['total_spend'])->toBe(50.00);
+
+    expect($data[1]['id'])->toBe($customer2->id);
+    expect($data[1]['total_quantity'])->toBe(1);
+    expect((float) $data[1]['total_spend'])->toBe(10.00);
 });

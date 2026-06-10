@@ -19,6 +19,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::post('/upload', [AssetController::class, 'store']);
 
+    Route::get('/products/{product}/customers', [ProductController::class, 'customers']);
     Route::apiResource('products', ProductController::class);
     Route::apiResource('customers', CustomerController::class);
     Route::apiResource('orders', OrderController::class)->only(['index', 'show', 'store', 'update']);
