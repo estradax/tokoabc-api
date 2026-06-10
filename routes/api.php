@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AssetController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\ProductController;
@@ -14,6 +15,8 @@ Route::middleware('auth:sanctum')->group(function () {
     });
 
     Route::post('/logout', [AuthController::class, 'logout']);
+
+    Route::post('/upload', [AssetController::class, 'store']);
 
     Route::apiResource('products', ProductController::class);
     Route::apiResource('orders', OrderController::class)->only(['index', 'show', 'update']);
