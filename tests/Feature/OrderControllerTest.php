@@ -3,6 +3,7 @@
 use App\Models\Customer;
 use App\Models\Order;
 use App\Models\OrderItem;
+use App\Models\Product;
 use App\Models\User;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 
@@ -108,4 +109,74 @@ test('authenticated user can update order status', function () {
         'id' => $order->id,
         'status' => 'completed',
     ]);
+});
+
+test('authenticated user can create order with optional customer and products', function () {
+    $user = User::factory()->create();
+    $customer = Customer::factory()->create();
+    $product1 = Product::factory()->create(['price' => 100, 'stock' => 10]);
+    $product2 = Product::factory()->create(['price' => 50, 'stock' => 5]);
+
+    $response = $this->actingAs($user)
+        ->postJson('/api/orders', [
+            'customer_id' => $customer->id,
+            'items' => [
+                ['product_id' => $product1->id, 'quantity' => 2],
+                ['product_id' => $product2->id, 'quantity' => 1],
+            ],
+        ]);
+
+    $response->assertStatus(201)
+        ->assertJsonStructure([
+            'message',
+            'order' => [
+                'id',
+                'order_number',
+                'total_amount',
+                'status',
+                'customer',
+                'items',
+            ],
+        ]);
+
+    $this->assertDatabaseHas('orders', [
+        'customer_id' => $customer->id,
+        'total_amount' => 250.00,
+    ]);
+
+    expect($product1->fresh()->stock)->toBe(8);
+    expect($product2->fresh()->stock)->toBe(4);
+});
+
+test('authenticated user can create order without customer', function () {
+    $user = User::factory()->create();
+    $product = Product::factory()->create(['price' => 100, 'stock' => 10]);
+
+    $response = $this->actingAs($user)
+        ->postJson('/api/orders', [
+            'items' => [
+                ['product_id' => $product->id, 'quantity' => 1],
+            ],
+        ]);
+
+    $response->assertStatus(201);
+    $this->assertDatabaseHas('orders', [
+        'customer_id' => null,
+        'total_amount' => 100.00,
+    ]);
+});
+
+test('authenticated user cannot create order with insufficient product stock', function () {
+    $user = User::factory()->create();
+    $product = Product::factory()->create(['price' => 100, 'stock' => 2]);
+
+    $response = $this->actingAs($user)
+        ->postJson('/api/orders', [
+            'items' => [
+                ['product_id' => $product->id, 'quantity' => 3],
+            ],
+        ]);
+
+    $response->assertStatus(422)
+        ->assertJsonValidationErrors(['items']);
 });
