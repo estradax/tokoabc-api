@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Http\Requests\Report\SalesReportRequest;
 use App\Http\Resources\SalesReportResource;
 use App\Models\Order;
+use App\Models\OrderItem;
+use App\Models\Product;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
@@ -111,22 +113,35 @@ class ReportController extends Controller
             }
         }
 
-        $topProducts = DB::table('order_items')
-            ->join('orders', 'order_items.order_id', '=', 'orders.id')
-            ->leftJoin('products', 'order_items.product_id', '=', 'products.id')
-            ->where('orders.status', 'completed')
-            ->whereBetween('orders.created_at', [$startDate, $endDate])
+        $topItems = OrderItem::whereHas('order', function ($query) use ($startDate, $endDate) {
+            $query->where('status', 'completed')
+                ->whereBetween('created_at', [$startDate, $endDate]);
+        })
             ->select(
-                'order_items.product_id as id',
-                DB::raw("ANY_VALUE(COALESCE(products.name, JSON_UNQUOTE(JSON_EXTRACT(order_items.product_json, '$.name')))) as name"),
-                DB::raw("ANY_VALUE(COALESCE(products.sku, JSON_UNQUOTE(JSON_EXTRACT(order_items.product_json, '$.sku')))) as sku"),
-                DB::raw('SUM(order_items.quantity) as quantity_sold'),
-                DB::raw('SUM(order_items.quantity * order_items.unit_price) as total_revenue')
+                'product_id',
+                'product_json',
+                DB::raw('SUM(quantity) as quantity_sold'),
+                DB::raw('SUM(quantity * unit_price) as total_revenue')
             )
-            ->groupBy('order_items.product_id')
+            ->groupBy('product_id', 'product_json')
             ->orderByDesc('quantity_sold')
             ->limit(5)
             ->get();
+
+        $productIds = $topItems->pluck('product_id')->filter();
+        $products = Product::whereIn('id', $productIds)->get()->keyBy('id');
+
+        $topProducts = $topItems->map(function ($item) use ($products) {
+            $product = $products->get($item->product_id);
+
+            return (object) [
+                'id' => $item->product_id,
+                'name' => $product->name ?? $item->product_json['name'] ?? 'Unknown Product',
+                'sku' => $product->sku ?? $item->product_json['sku'] ?? 'N/A',
+                'quantity_sold' => (int) $item->quantity_sold,
+                'total_revenue' => (float) $item->total_revenue,
+            ];
+        });
 
         return new SalesReportResource([
             'summary' => [
