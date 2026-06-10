@@ -16,9 +16,6 @@ use Illuminate\Support\Str;
 
 class ProductController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
     public function index(Request $request): AnonymousResourceCollection
     {
         $search = $request->query('search');
@@ -38,9 +35,6 @@ class ProductController extends Controller
         return ProductResource::collection($products);
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
     public function store(StoreProductRequest $request): JsonResponse
     {
         $validated = $request->validated();
@@ -53,7 +47,7 @@ class ProductController extends Controller
 
         $product = Product::create($validated);
 
-        if (! empty($media)) {
+        if (!empty($media)) {
             foreach ($media as $item) {
                 $product->media()->create([
                     'type' => $item['type'] ?? 'image',
@@ -71,9 +65,6 @@ class ProductController extends Controller
         ], 201);
     }
 
-    /**
-     * Display the specified resource.
-     */
     public function show(Product $product): ProductResource
     {
         $product->load('media');
@@ -81,9 +72,6 @@ class ProductController extends Controller
         return new ProductResource($product);
     }
 
-    /**
-     * Update the specified resource in storage.
-     */
     public function update(UpdateProductRequest $request, Product $product): JsonResponse
     {
         $validated = $request->validated();
@@ -115,9 +103,6 @@ class ProductController extends Controller
         ]);
     }
 
-    /**
-     * Remove the specified resource from storage.
-     */
     public function destroy(Product $product): JsonResponse
     {
         $product->delete();
@@ -127,9 +112,6 @@ class ProductController extends Controller
         ]);
     }
 
-    /**
-     * Display the customers who purchased the specified product.
-     */
     public function customers(Product $product): AnonymousResourceCollection
     {
         $customers = Customer::query()
@@ -146,7 +128,7 @@ class ProductController extends Controller
                     ->get();
 
                 $customer->total_quantity = $items->sum('quantity');
-                $customer->total_spend = $items->sum(fn ($item) => $item->quantity * $item->unit_price);
+                $customer->total_spend = $items->sum(fn($item) => $item->quantity * $item->unit_price);
                 $customer->last_purchased_at = $items->max('created_at');
 
                 return $customer;
@@ -157,9 +139,6 @@ class ProductController extends Controller
         return ProductCustomerResource::collection($customers);
     }
 
-    /**
-     * Generate a unique slug for the product.
-     */
     private function generateUniqueSlug(string $name, ?int $excludeId = null): string
     {
         $slug = Str::slug($name);

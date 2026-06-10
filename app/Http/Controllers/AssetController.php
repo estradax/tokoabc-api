@@ -9,9 +9,6 @@ use Illuminate\Support\Facades\Storage;
 
 class AssetController extends Controller
 {
-    /**
-     * Store a newly created asset in storage.
-     */
     public function store(UploadAssetRequest $request): AssetResource
     {
         /** @var UploadedFile $file */

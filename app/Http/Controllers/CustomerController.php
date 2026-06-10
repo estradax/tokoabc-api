@@ -12,9 +12,6 @@ use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
 class CustomerController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
     public function index(Request $request): AnonymousResourceCollection
     {
         $search = $request->query('search');
@@ -34,9 +31,6 @@ class CustomerController extends Controller
         return CustomerResource::collection($customers);
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
     public function store(StoreCustomerRequest $request): JsonResponse
     {
         $customer = Customer::create($request->validated());
@@ -47,17 +41,11 @@ class CustomerController extends Controller
         ], 201);
     }
 
-    /**
-     * Display the specified resource.
-     */
     public function show(Customer $customer): CustomerResource
     {
         return new CustomerResource($customer);
     }
 
-    /**
-     * Update the specified resource in storage.
-     */
     public function update(UpdateCustomerRequest $request, Customer $customer): JsonResponse
     {
         $customer->update($request->validated());
@@ -68,9 +56,6 @@ class CustomerController extends Controller
         ]);
     }
 
-    /**
-     * Remove the specified resource from storage.
-     */
     public function destroy(Customer $customer): JsonResponse
     {
         $customer->delete();

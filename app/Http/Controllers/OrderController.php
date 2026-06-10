@@ -16,9 +16,6 @@ use Illuminate\Validation\ValidationException;
 
 class OrderController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
     public function index(Request $request): AnonymousResourceCollection
     {
         $search = $request->query('search');
@@ -43,9 +40,6 @@ class OrderController extends Controller
         return OrderResource::collection($orders);
     }
 
-    /**
-     * Display the specified resource.
-     */
     public function show(Order $order): OrderResource
     {
         $order->load(['customer', 'items.product']);
@@ -53,11 +47,6 @@ class OrderController extends Controller
         return new OrderResource($order);
     }
 
-    /**
-     * Store a newly created resource in storage.
-     *
-     * @throws ValidationException
-     */
     public function store(StoreOrderRequest $request): JsonResponse
     {
         $validated = $request->validated();
@@ -95,7 +84,7 @@ class OrderController extends Controller
             }
 
             do {
-                $orderNumber = 'ORD-'.strtoupper(Str::random(8));
+                $orderNumber = 'ORD-' . strtoupper(Str::random(8));
             } while (Order::query()->where('order_number', $orderNumber)->exists());
 
             $order = Order::query()->create([
@@ -120,9 +109,6 @@ class OrderController extends Controller
         ], 201);
     }
 
-    /**
-     * Update the specified resource in storage.
-     */
     public function update(UpdateOrderRequest $request, Order $order): OrderResource
     {
         $order->update($request->validated());
