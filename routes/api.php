@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AssetController;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\ProductController;
 use Illuminate\Http\Request;
@@ -19,5 +20,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/upload', [AssetController::class, 'store']);
 
     Route::apiResource('products', ProductController::class);
+    Route::apiResource('customers', CustomerController::class);
     Route::apiResource('orders', OrderController::class)->only(['index', 'show', 'update']);
 });
