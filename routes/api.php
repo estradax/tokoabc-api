@@ -5,6 +5,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\ProductController;
+use App\Http\Controllers\ReportController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -18,6 +19,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
 
     Route::post('/upload', [AssetController::class, 'store']);
+
+    Route::get('/reports/sales', [ReportController::class, 'sales']);
 
     Route::get('/products/{product}/customers', [ProductController::class, 'customers']);
     Route::apiResource('products', ProductController::class);
