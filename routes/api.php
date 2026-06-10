@@ -18,6 +18,8 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::post('/logout', [AuthController::class, 'logout']);
 
+    Route::put('/password', [AuthController::class, 'changePassword']);
+
     Route::post('/upload', [AssetController::class, 'store']);
 
     Route::get('/reports/sales', [ReportController::class, 'sales']);
